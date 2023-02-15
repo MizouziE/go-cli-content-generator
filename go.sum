@@ -2,6 +2,3 @@ github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
 github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
 github.com/sashabaranov/go-gpt3 v1.1.0 h1:94w3N8Sx5VBSLAXFm4+dWrxWR4h1ID1wUftChJ0Ji5A=
 github.com/sashabaranov/go-gpt3 v1.1.0/go.mod h1:BIZdbwdzxZbCrcKGMGH6u2eyGe1xFuX9Anmh3tCP8lQ=
-github.com/u-root/u-root v0.11.0 h1:6gCZLOeRyevw7gbTwMj3fKxnr9+yHFlgF3N7udUVNO8=
-github.com/u-root/u-root v0.11.0/go.mod h1:DBkDtiZyONk9hzVEdB/PWI9B4TxDkElWlVTHseglrZY=
-golang.org/x/sys v0.1.0 h1:kunALQeHf1/185U1i0GOB/fy1IPRDDpuoOOqRReG57U=
