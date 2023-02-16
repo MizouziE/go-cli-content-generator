@@ -3,11 +3,16 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/csv"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 	gogpt "github.com/sashabaranov/go-gpt3"
+	"github.com/schollz/progressbar/v3"
 )
 
 func main() {
@@ -24,31 +29,72 @@ func main() {
 		return
 	}
 
-	// Ask user for prompt
-	fmt.Println("Please provide a prompt:")
-	userPrompt, err := reader.ReadString('\n')
+	// Ask for path to input file
+	fmt.Println("Please provide relative path to input csv file:")
+	csvFilePath, err := reader.ReadString('\n')
 	if err != nil {
-		fmt.Println("Could not retrieve prompt from user.\n\nClosing...")
+		fmt.Println("Unable to accept file path.\n\nClosing...")
 		return
+	}
+
+	// Read csv file rows
+	csvFile, err := os.ReadFile(strings.TrimSpace(csvFilePath))
+	if err != nil {
+		fmt.Println("Unable to read given file path.\n\nBeacause of:...")
+		fmt.Println(err)
+		return
+	}
+
+	csvReader := csv.NewReader(strings.NewReader(string(csvFile)))
+
+	rows, err := csvReader.ReadAll()
+	if err != nil {
+		fmt.Println("Can't read csv!")
+		return
+	}
+
+	// Create a list of prompts to run
+	var promptList []string
+
+	for _, row := range rows {
+		prompt := fmt.Sprintf("Write me a 150 word story about a %s %s that is %s, in Markdown format", row[0], row[1], row[2])
+		promptList = append(promptList, prompt)
 	}
 
 	// Connect with API Key
 	c := gogpt.NewClient(os.Getenv("OPEN_AI_API_KEY"))
 	ctx := context.Background()
 
-	req := gogpt.CompletionRequest{
-		Model:     gogpt.GPT3TextDavinci003,
-		MaxTokens: 100,
-		Prompt:    userPrompt,
-	}
-	resp, err := c.CreateCompletion(ctx, req)
-	if err != nil {
+	// Create directory for responses to prompts
+	newDirectoryName := "storage/" + time.Now().Format("060102_150405")
+	errDir := os.Mkdir(newDirectoryName, 0777)
+	if errDir != nil {
+		fmt.Println("Cannot create directory\n\nClosing...")
 		return
 	}
 
-	// Return answer to prompt
-	fmt.Println(resp.Choices[0].Text)
+	// Run each prompt from the list thru openai API
+	bar := progressbar.Default(int64((len(promptList))))
+	for index, prompt := range promptList {
 
+		req := gogpt.CompletionRequest{
+			Model:     gogpt.GPT3TextDavinci003,
+			MaxTokens: 300,
+			Prompt:    prompt,
+		}
+		resp, err := c.CreateCompletion(ctx, req)
+		if err != nil {
+			return
+		}
+
+		// Write output to file
+		errWrite := os.WriteFile(strings.TrimSpace(newDirectoryName+"/story-"+strconv.Itoa(index+1)+".md"), []byte(resp.Choices[0].Text), 0777)
+		if errWrite != nil {
+			fmt.Println("Unable to write new file\n\nClosing...\n\nBecause: ", errWrite)
+			return
+		}
+		bar.Add(1)
+	}
 }
 
 func envFileCheck(r *bufio.Reader) {
