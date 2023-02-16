@@ -57,7 +57,7 @@ func main() {
 	var promptList []string
 
 	for _, row := range rows {
-		prompt := fmt.Sprintf("Write me a 150 word story about a %s %s that is %s, in Markdown format", row[0], row[1], row[2])
+		prompt := fmt.Sprintf("Write me a 150 word story about a %s %s that is %s", row[0], row[1], row[2])
 		promptList = append(promptList, prompt)
 	}
 
