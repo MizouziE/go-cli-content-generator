@@ -4,7 +4,7 @@
 prompts:
 - Write a 150 word story about a {{ .Mood }} {{ .Animal }}
 - Write a joke about a {{ .Animal }} who is {{ .Description }}
-- List 5 synonyms of {{ .Mood }} with the title Other Words for {{ .Mood }}
+- Write a list of 5 synonyms for {{ .Mood }} with the heading "Other Words for {{ .Mood }}"
 - Write instructions with 7 steps on how to make your {{ .Animal }} {{ .Mood }} if it is {{ .Description }}
 
 data: storage/example.csv # relative path to csv containing prompt options

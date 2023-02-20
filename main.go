@@ -174,6 +174,7 @@ func main() {
 		bar.Add(1)
 	}
 
+	// Save used prompts to same directory
 	listAsJSON, _ := json.Marshal(promptList)
 	JSONfull := `{"prompts":` + string(listAsJSON) + `}`
 	errPrompts := os.WriteFile(strings.TrimSpace(newDirectoryName+"/prompts.json"), []byte(JSONfull), 0777)
