@@ -2,22 +2,132 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/joho/godotenv"
 	gogpt "github.com/sashabaranov/go-gpt3"
 	"github.com/schollz/progressbar/v3"
+	"gopkg.in/yaml.v3"
 )
 
 func main() {
 	// Initiate user input reader
 	reader := bufio.NewReader(os.Stdin)
+
+	// YAML tests
+	type Config struct {
+		Prompts []string
+		Data    string
+	}
+
+	// type Row struct {
+	// 	Columns map[string]string
+	// }
+
+	type Table struct {
+		Headings []string
+		Rows     []map[string]string
+	}
+
+	fmt.Println("enter config yaml path:")
+	configPath, err := reader.ReadString('\n')
+	if err != nil {
+		fmt.Println("Config path no good!\n\nClosing...")
+		return
+	}
+
+	// Read config file
+	configFile, err := os.ReadFile(strings.TrimSpace(configPath))
+	if err != nil {
+		fmt.Println("Unable to read config file\n\nClosing...")
+		return
+	}
+
+	// This will be the config
+	config := Config{}
+
+	errYaml := yaml.Unmarshal(configFile, &config)
+	if errYaml != nil {
+		fmt.Println("Cannot parse config file\n\nClosing...")
+		return
+	}
+
+	// Use data path from config to get csv rows
+	csvFromConfig, err := os.ReadFile(strings.TrimSpace(config.Data))
+	if err != nil {
+		fmt.Println("Unable to read csv from config's data path\n\nClosing...")
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
+	csvFromConfigReader := csv.NewReader(strings.NewReader(string(csvFromConfig)))
+
+	rows, err := csvFromConfigReader.ReadAll()
+	if err != nil {
+		fmt.Println("Can't read csv with\n\nClosing...")
+		return
+	}
+
+	// Make a table
+	table := Table{}
+
+	for i, row := range rows {
+		if i == 0 {
+			table.Headings = row
+		} else {
+			rowMap := make(map[string]string)
+			for j := range row {
+				rowMap[table.Headings[j]] = row[j]
+			}
+
+			table.Rows = append(table.Rows, rowMap)
+
+		}
+	}
+
+	// Make empty list
+	var promptList []string
+
+	// Use table to loop through rows, filling in prompts
+	for _, row := range table.Rows {
+
+		// Define templates
+		type Values struct {
+			Animal, Mood, Description string
+		}
+
+		var values = Values{
+			Animal:      row["animal"],
+			Mood:        row["mood"],
+			Description: row["description"],
+		}
+
+		for _, prompt := range config.Prompts {
+			// Create a new template
+			tmpl := template.Must(template.New("prompt").Parse(prompt))
+
+			// Execute template
+			promptAsBytes := new(bytes.Buffer)
+			err := tmpl.Execute(promptAsBytes, values)
+			if err != nil {
+				fmt.Println("Cannot execute template\n\nClosing...")
+				return
+			}
+
+			promptList = append(promptList, promptAsBytes.String())
+		}
+	}
+
+	fmt.Printf("List length: %v\n\n%#v\n", len(promptList), promptList)
 
 	// Check for .env file
 	envFileCheck(reader)
@@ -27,38 +137,6 @@ func main() {
 	if errLoadDotEnv != nil {
 		fmt.Println("Error loading .env file\n\nClosing...")
 		return
-	}
-
-	// Ask for path to input file
-	fmt.Println("Please provide relative path to input csv file:")
-	csvFilePath, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Println("Unable to accept file path.\n\nClosing...")
-		return
-	}
-
-	// Read csv file rows
-	csvFile, err := os.ReadFile(strings.TrimSpace(csvFilePath))
-	if err != nil {
-		fmt.Println("Unable to read given file path.\n\nBeacause of:...")
-		fmt.Println(err)
-		return
-	}
-
-	csvReader := csv.NewReader(strings.NewReader(string(csvFile)))
-
-	rows, err := csvReader.ReadAll()
-	if err != nil {
-		fmt.Println("Can't read csv!")
-		return
-	}
-
-	// Create a list of prompts to run
-	var promptList []string
-
-	for _, row := range rows {
-		prompt := fmt.Sprintf("Write me a 150 word story about a %s %s that is %s", row[0], row[1], row[2])
-		promptList = append(promptList, prompt)
 	}
 
 	// Connect with API Key
@@ -88,12 +166,20 @@ func main() {
 		}
 
 		// Write output to file
-		errWrite := os.WriteFile(strings.TrimSpace(newDirectoryName+"/story-"+strconv.Itoa(index+1)+".md"), []byte(resp.Choices[0].Text), 0777)
+		errWrite := os.WriteFile(strings.TrimSpace(newDirectoryName+"/output-"+strconv.Itoa(index+1)+".md"), []byte(resp.Choices[0].Text), 0777)
 		if errWrite != nil {
 			fmt.Println("Unable to write new file\n\nClosing...\n\nBecause: ", errWrite)
 			return
 		}
 		bar.Add(1)
+	}
+
+	listAsJSON, _ := json.Marshal(promptList)
+	JSONfull := `{"prompts":` + string(listAsJSON) + `}`
+	errPrompts := os.WriteFile(strings.TrimSpace(newDirectoryName+"/prompts.json"), []byte(JSONfull), 0777)
+	if errPrompts != nil {
+		fmt.Println("Unable to save prompts\n\nClosing...")
+		return
 	}
 }
 
