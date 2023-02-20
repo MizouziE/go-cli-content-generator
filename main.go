@@ -19,24 +19,24 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// define types
+type Config struct {
+	Prompts []string
+	Data    string
+}
+
+type Table struct {
+	Headings []string
+	Rows     []map[string]string
+}
+
+type Values struct {
+	Animal, Mood, Description string
+}
+
 func main() {
 	// Initiate user input reader
 	reader := bufio.NewReader(os.Stdin)
-
-	// YAML tests
-	type Config struct {
-		Prompts []string
-		Data    string
-	}
-
-	// type Row struct {
-	// 	Columns map[string]string
-	// }
-
-	type Table struct {
-		Headings []string
-		Rows     []map[string]string
-	}
 
 	fmt.Println("enter config yaml path:")
 	configPath, err := reader.ReadString('\n')
@@ -101,10 +101,6 @@ func main() {
 	for _, row := range table.Rows {
 
 		// Define templates
-		type Values struct {
-			Animal, Mood, Description string
-		}
-
 		var values = Values{
 			Animal:      row["animal"],
 			Mood:        row["mood"],
@@ -126,8 +122,6 @@ func main() {
 			promptList = append(promptList, promptAsBytes.String())
 		}
 	}
-
-	fmt.Printf("List length: %v\n\n%#v\n", len(promptList), promptList)
 
 	// Check for .env file
 	envFileCheck(reader)
