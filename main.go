@@ -7,6 +7,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -38,6 +39,9 @@ func main() {
 	// Initiate user input reader
 	reader := bufio.NewReader(os.Stdin)
 
+	// Check for .env file
+	envFileCheck(reader)
+
 	fmt.Println("enter config yaml path:")
 	configPath, err := reader.ReadString('\n')
 	if err != nil {
@@ -55,56 +59,46 @@ func main() {
 	// This will be the config
 	config := Config{}
 
-	errYaml := yaml.Unmarshal(configFile, &config)
-	if errYaml != nil {
+	err = yaml.Unmarshal(configFile, &config)
+	if err != nil {
 		fmt.Println("Cannot parse config file\n\nClosing...")
 		return
 	}
 
 	// Use data path from config to get csv rows
-	csvFromConfig, err := os.ReadFile(strings.TrimSpace(config.Data))
+	csvFromConfig, err := os.Open(strings.TrimSpace(config.Data))
 	if err != nil {
 		fmt.Println("Unable to read csv from config's data path\n\nClosing...")
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
-	csvFromConfigReader := csv.NewReader(strings.NewReader(string(csvFromConfig)))
+	csvFromConfigReader := csv.NewReader(csvFromConfig)
 
-	rows, err := csvFromConfigReader.ReadAll()
+	headingRow, err := csvFromConfigReader.Read()
 	if err != nil {
 		fmt.Println("Can't read csv with\n\nClosing...")
+		fmt.Println(err)
 		return
-	}
-
-	// Make a table
-	table := Table{}
-
-	for i, row := range rows {
-		if i == 0 {
-			table.Headings = row
-		} else {
-			rowMap := make(map[string]string)
-			for j := range row {
-				rowMap[table.Headings[j]] = row[j]
-			}
-
-			table.Rows = append(table.Rows, rowMap)
-
-		}
 	}
 
 	// Make empty list
 	var promptList []string
 
-	// Use table to loop through rows, filling in prompts
-	for _, row := range table.Rows {
+	for {
+		row, err := csvFromConfigReader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			fmt.Println("Iteration through csv broken!")
+			return
+		}
 
-		// Define templates
-		var values = Values{
-			Animal:      row["animal"],
-			Mood:        row["mood"],
-			Description: row["description"],
+		substitutes := make(map[string]string)
+
+		for i := range row {
+			substitutes[headingRow[i]] = row[i]
 		}
 
 		for _, prompt := range config.Prompts {
@@ -113,18 +107,16 @@ func main() {
 
 			// Execute template
 			promptAsBytes := new(bytes.Buffer)
-			err := tmpl.Execute(promptAsBytes, values)
+			err := tmpl.Execute(promptAsBytes, substitutes)
 			if err != nil {
 				fmt.Println("Cannot execute template\n\nClosing...")
+				fmt.Println(err)
 				return
 			}
 
 			promptList = append(promptList, promptAsBytes.String())
 		}
 	}
-
-	// Check for .env file
-	envFileCheck(reader)
 
 	//load env variables - e.g. API Key
 	errLoadDotEnv := godotenv.Load()
@@ -139,8 +131,8 @@ func main() {
 
 	// Create directory for responses to prompts
 	newDirectoryName := "storage/" + time.Now().Format("060102_150405")
-	errDir := os.Mkdir(newDirectoryName, 0777)
-	if errDir != nil {
+	err = os.Mkdir(newDirectoryName, 0777)
+	if err != nil {
 		fmt.Println("Cannot create directory\n\nClosing...")
 		return
 	}
@@ -171,8 +163,8 @@ func main() {
 	// Save used prompts to same directory
 	listAsJSON, _ := json.Marshal(promptList)
 	JSONfull := `{"prompts":` + string(listAsJSON) + `}`
-	errPrompts := os.WriteFile(strings.TrimSpace(newDirectoryName+"/prompts.json"), []byte(JSONfull), 0777)
-	if errPrompts != nil {
+	err = os.WriteFile(strings.TrimSpace(newDirectoryName+"/prompts.json"), []byte(JSONfull), 0777)
+	if err != nil {
 		fmt.Println("Unable to save prompts\n\nClosing...")
 		return
 	}

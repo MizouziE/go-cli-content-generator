@@ -2,9 +2,9 @@
 # See example.csv for reference
 
 prompts:
-- Write a 150 word story about a {{ .Mood }} {{ .Animal }}
-- Write a joke about a {{ .Animal }} who is {{ .Description }}
-- Write a list of 5 synonyms for {{ .Mood }} with the heading "Other Words for {{ .Mood }}"
-- Write instructions with 7 steps on how to make your {{ .Animal }} {{ .Mood }} if it is {{ .Description }}
+- Write a 150 word story about a {{ .adjective }} {{ .noun }}
+- Write a joke about a {{ .noun }} who is {{ .verb }}
+- Write a list of 5 synonyms for {{ .adjective }} with the heading "Other Words for {{ .adjective }}"
+- Write instructions with 7 steps on how to make your {{ .noun }} {{ .adjective }} if it is {{ .verb }}
 
 data: storage/example.csv # relative path to csv containing prompt options
