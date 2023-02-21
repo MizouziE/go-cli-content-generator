@@ -1,0 +1,11 @@
+# The words in {{ .curly-braces }} are to be replaced with the corresponding column heading from the accompanying csv file.
+# See example.csv for reference
+
+prompts:
+- Write a 5 step plan of how to safely transport a {{ .animal }} from {{ .location }} to my house.
+- Write a 3 verse poem about a boy who would {{ .ability }} {{ .number }} times a day.
+- Write a haiku about {{ .number }} {{ .animal }}s.
+- Write a limmerick about a girl from {{ .location }} who liked to {{ .ability }}.
+
+
+data: example.csv # relative path to csv containing prompt options
