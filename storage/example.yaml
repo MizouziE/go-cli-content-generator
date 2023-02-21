@@ -1,4 +1,4 @@
-# The words in {{ .Curly braces }} are to be replaced with the corresponding column heading from the accompanying csv file.
+# The words in {{ .curly-braces }} are to be replaced with the corresponding column heading from the accompanying csv file.
 # See example.csv for reference
 
 prompts:
