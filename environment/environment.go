@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"gitlab.vlah.sh/intellistage/fintech/content-generator/reader"
 )
 
-func EnvFileCheck(r *bufio.Reader) {
+func EnvFileCheck() {
 	if _, err := os.Stat(".env"); err != nil {
 		// Create copy of example file if .env does not
 		file, err := os.Create(".env")
@@ -22,7 +23,7 @@ func EnvFileCheck(r *bufio.Reader) {
 
 		// Ask user to input key
 		fmt.Println("Please enter OpenAI API key below:")
-		apiKey, err := r.ReadString('\n')
+		apiKey, err := reader.Reader().ReadString('\n')
 		if err != nil {
 			fmt.Println("Could not retrieve API key.\n\nClosing...")
 			panic(err)

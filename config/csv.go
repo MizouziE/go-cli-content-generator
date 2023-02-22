@@ -5,14 +5,41 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"gitlab.vlah.sh/intellistage/fintech/content-generator/reader"
 )
 
 func GetCsv(config Config) (*csv.Reader, []string) {
 
-	// Use data path from config to get csv rows
-	csvFile, err := os.Open(strings.TrimSpace(config.Data))
+	args := os.Args
+	var csvPath string
+	var err error
+
+	if (len(args) < 3) && (config.Data != "") {
+
+		// Use data path from config to get csv rows
+		csvPath = config.Data
+
+	} else if config.Data == "" {
+
+		// Ask user for path to csv
+		fmt.Println("Please enter csv path:")
+		csvPath, err = reader.Reader().ReadString('\n')
+		if err != nil {
+			fmt.Println("Csv path no good!\n\nClosing...")
+			panic(err)
+		}
+
+	} else {
+
+		// Set path as second named argument
+		csvPath = args[2]
+	}
+
+	// Open the csv with determined path
+	csvFile, err := os.Open(strings.TrimSpace(csvPath))
 	if err != nil {
-		fmt.Println("Unable to read csv from config's data path\n\nClosing...")
+		fmt.Println("Unable to read csv from provided arguments!\n\nClosing...")
 		panic(err)
 	}
 

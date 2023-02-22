@@ -1,11 +1,11 @@
 package config
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"strings"
 
+	"gitlab.vlah.sh/intellistage/fintech/content-generator/reader"
 	"gopkg.in/yaml.v3"
 )
 
@@ -15,18 +15,30 @@ type Config struct {
 	Data    string
 }
 
-func GetConfig(r *bufio.Reader) Config {
-	fmt.Println("enter config yaml path:")
-	configPath, err := r.ReadString('\n')
-	if err != nil {
-		fmt.Println("Config path no good!\n\nClosing...")
-		panic(err)
+func GetConfig() Config {
+	args := os.Args
+	var configPath string
+	var err error
+
+	if len(args) < 2 {
+
+		fmt.Println("Please enter config yaml path:")
+		configPath, err = reader.Reader().ReadString('\n')
+		if err != nil {
+			fmt.Println("Config path no good!\n\nClosing...")
+			panic(err)
+		}
+
+	} else {
+
+		configPath = os.Args[1]
+
 	}
 
 	// Read config file
 	configFile, err := os.ReadFile(strings.TrimSpace(configPath))
 	if err != nil {
-		fmt.Println("Unable to read config file\n\nClosing...")
+		fmt.Println("Config path not retrievable. Are you sure it is relative?\n\nClosing...")
 		panic(err)
 	}
 
