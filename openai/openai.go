@@ -17,11 +17,12 @@ import (
 	"gitlab.vlah.sh/intellistage/fintech/content-generator/config"
 )
 
-func SetPromptList(c *csv.Reader, hr []string, config config.Config) []string {
-	// Make empty list
-	var promptList []string
+func SetPromptList(c *csv.Reader, hr []string, config config.Config) [][]string {
+	// Make empty lists
+	var promptList [][]string
 
 	for {
+		var promptRow []string
 		row, err := c.Read()
 		if err == io.EOF {
 			break
@@ -49,38 +50,49 @@ func SetPromptList(c *csv.Reader, hr []string, config config.Config) []string {
 				panic(err)
 			}
 
-			promptList = append(promptList, promptAsBytes.String())
+			promptRow = append(promptRow, promptAsBytes.String())
 		}
+
+		promptList = append(promptList, promptRow)
 
 	}
 	return promptList
 
 }
 
-func RunOpenAI(p []string, dir string) {
+func RunOpenAI(p [][]string, dir string) {
 	// Connect with API Key
 	c := gogpt.NewClient(os.Getenv("OPEN_AI_API_KEY"))
 	ctx := context.Background()
 
 	// Run each prompt from the list thru openai API
 	bar := progressbar.Default(int64((len(p))))
-	for index, prompt := range p {
+	for index, promptRow := range p {
 
-		req := gogpt.CompletionRequest{
-			Model:     gogpt.GPT3TextDavinci003,
-			MaxTokens: 300,
-			Prompt:    prompt,
-		}
-		resp, err := c.CreateCompletion(ctx, req)
-		if err != nil {
-			return
+		// Initialise empty output var
+		var content string
+
+		for _, prompt := range promptRow {
+
+			req := gogpt.CompletionRequest{
+				Model:     gogpt.GPT3TextDavinci003,
+				MaxTokens: 1000,
+				Prompt:    prompt,
+			}
+
+			resp, err := c.CreateCompletion(ctx, req)
+			if err != nil {
+				panic(err)
+			}
+
+			// Concat onto content string
+			content += resp.Choices[0].Text
 		}
 
 		// Write output to file
-		err = os.WriteFile(strings.TrimSpace(dir+"/output-"+strconv.Itoa(index+1)+".md"), []byte(resp.Choices[0].Text), 0777)
+		err := os.WriteFile(strings.TrimSpace(dir+"/row-output-"+strconv.Itoa(index+1)+".md"), []byte(content), 0777)
 		if err != nil {
-			fmt.Println("Unable to write new file\n\nClosing...\n\nBecause: ", err)
-			return
+			panic(err)
 		}
 		bar.Add(1)
 	}
@@ -90,7 +102,6 @@ func RunOpenAI(p []string, dir string) {
 	JSONfull := `{"prompts":` + string(listAsJSON) + `}`
 	err := os.WriteFile(strings.TrimSpace(dir+"/prompts.json"), []byte(JSONfull), 0777)
 	if err != nil {
-		fmt.Println("Unable to save prompts\n\nClosing...")
-		return
+		panic(err)
 	}
 }
