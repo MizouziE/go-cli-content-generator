@@ -5,7 +5,7 @@
 To start this CLI in it's first iteration:
 
 ```sh
-go run main.go
+go run main.go <optional-path-to-config.yaml> <optional-path-to-data.csv>
 ```
 
 ## Input your OpenAI credentials
@@ -16,7 +16,11 @@ This will be saved to your own local `.env` file for the application to use each
 
 ## Add your files
 
-It is possible to use any 3 column csv, just provide the relative path when prompted. An example is provided for your use:
+Optionally, you may add a config yaml file path as a first argument on initiation. This config yaml can also already include a field `data:` with the relative path to the csv data file.
+
+The path to the csv data file may also be passed as the second argument to the initiation.
+
+It is possible to use a csv with any number of columns. An example is provided for your use:
 
 ```sh
 storage/example.csv
@@ -24,19 +28,32 @@ storage/example.csv
 
 ## Promts generated
 
-Currently, the prompting format is a little hard-coded for demonstration purposes. Understanding it will allow you to make more effective input csv files.
+The prompt structure is to be provided in the configuration under a `prompts:` field.
 
-The prompt base sentence is:
+An example prompt base sentence is:
 
-> "Write me a 150 word story about a <\column-#1> <\column-#2> that is <\column-#3>"
+>prompt:
+>- Write me a 150 word story about a {{ .mood }} {{ .animal }} that is {{ .action }}
+>- Write a poem about a {{ .animal }} that you met while {{ .action }}
 
-Each `<\column-#>` corresponds to the numbered column of the csv. So based on this, it is best to have rows that go something like `"adjective","noun","verb OR desciption of an action"`. Take a look at [./storage/example.csv](./storage/example.csv) to see examples.
+Each `{{ .curly-braced-word }}` corresponds to the column of the csv. So based on this, it is best to have a heading row and csv layout that go something like:
 
->! Be aware that there is currently no heading row, the first row is just the first row.
+```csv
+mood,animal,action
+happy,duck,swimming
+upset,bird,flying
+sombre,dog,eating
+```
+
+Take a look at [./storage/example.csv](./storage/example.csv) to see examples.
 
 ## Files generated
 
-The output from each individual prompt will be written to a separate file inside a directory created and timestamped when the csv file is provided. The filename for each row's output will be `story-#` where # = the row number, so you may refer back to the supplied csv to see what prompt resulted in which story.
+The prompts will be run in the order they are provided for each row.
+
+Each prompts output is concatenated into a single file **for each row**.
+
+The output from each individual row will be written to a separate file inside a directory created and timestamped when the csv file is provided. The filename for each row's output will be `row-output-#` where # = the row number, so you may refer back to the supplied csv to see what prompt resulted in which section.
 
 ***
 
