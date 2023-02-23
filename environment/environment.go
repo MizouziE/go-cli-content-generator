@@ -59,8 +59,19 @@ func PrepareEnvironment() string {
 		panic(err)
 	}
 
+	// Check for content storage folder and make if not present
+	exists, err := exists("./content")
+
+	if (!exists) && (err == nil) {
+		err = os.Mkdir("content", 0750)
+	}
+
+	if err != nil {
+		panic(err)
+	}
+
 	// Create directory for responses to prompts
-	newDirectoryName := "storage/" + time.Now().Format("060102_150405")
+	newDirectoryName := "content/" + time.Now().Format("060102_150405")
 	err = os.Mkdir(newDirectoryName, 0777)
 	if err != nil {
 		fmt.Println("Cannot create directory\n\nClosing...")
@@ -68,4 +79,16 @@ func PrepareEnvironment() string {
 	}
 
 	return newDirectoryName
+}
+
+// exists returns whether the given file or directory exists
+func exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
